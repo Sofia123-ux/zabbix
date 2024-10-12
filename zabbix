@@ -1,0 +1,46 @@
+#!/bin/bash
+
+IP=$(curl http://192.168.1.101/latest/meta-data/public-ipv4/)
+HOST_NAME="$(curl http://169.254.169.254/latest/user-data/ 2>&1 | grep HOST_NAM>
+echo "${HOST_NAME}"
+
+ERROR='0'
+ZABBIX_USER='administrator' 
+ZABBIX_PASS='password' 
+ZABBIX_SERVER='zabbix.example.com'
+API='https://zabbix.example.com/api_jsonrpc.php' 
+apt-get install -y zabbix-agent
+
+echo "Server=${ZABBIX_SERVER}" > /etc/zabbix/zabbix_agentd.conf
+echo "Hostname=${HOST_NAME}" >> /etc/zabbix/zabbix_agentd.conf
+echo "StartAgents=5" >> /etc/zabbix/zabbix_agentd.conf
+echo "DebugLevel=3" >> /etc/zabbix/zabbix_agentd.conf
+echo "PidFile=/var/run/zabbix-agent/zabbix_agentd.pid" >> /etc/zabbix/zabbix_agentd.conf
+echo "LogFile=/var/log/zabbix-agent/zabbix_agentd.log" >> /etc/zabbix/zabbix_agentd.conf
+echo "Timeout=3" >> /etc/zabbix/zabbix_agentd.conf
+
+service zabbix-agent stop
+
+authenticate() {
+curl -i -X POST -H 'Content-Type: application/json-rpc' -d "{\"params\": {\"pas>
+}
+AUTH_TOKEN=$(authenticate)
+
+create_host() {
+  curl -i -X POST -H 'Content-Type: application/json-rpc' -d "{\"jsonrpc\":\"2.>
+}
+output=$(create_host)
+
+echo $output | grep -q "hostids"
+rc=$?
+if [ $rc -ne 0 ]
+ then
+        echo -e "Error in adding host ${HOST_NAME} at `date`:\n"
+        echo $output | grep -Po '"message":.*?[^\\]",'
+        echo $output | grep -Po '"data":.*?[^\\]"'
+        exit
+else
+        echo -e "\nHost ${HOST_NAME} added successfully, starting Zabbix Agent\>
+        service zabbix-agent start
+        exit
+fi
